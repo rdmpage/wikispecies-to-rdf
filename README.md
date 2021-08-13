@@ -21,5 +21,51 @@ Use local version of (acoustic-bandana)[https://acoustic-bandana.glitch.me]. Dow
 
 Service will then be available on http://localhost:3000 The service takes a Wikispecies reference string and returns CSL-JSON.
 
+## Triple store
+
+I’m using [Oxigraph](https://crates.io/crates/oxigraph_server). Install this using `cargo install oxigraph_server`.
+
+Start the server in the same directory that you want the server’s files stored. If you cd to that directory, then:
+
+```oxigraph_server -f .```
+
+The endpoint is http://localhost:7878
+
+### Upload data
+
+curl http://localhost:7878/store?default -H 'Content-Type:application/n-triples' --data-binary '@TemplateLücking_et_al.,_2017c.nt'  --progress-bar 
+
+curl http://localhost:7878/store?default -H 'Content-Type:application/n-triples' --data-binary '@1999-3110-54-38.nt' 
+
+### Query
+
+curl http://localhost:7878/query -H 'Content-Type:application/sparql-query' -H 'Accept:application/sparql-results+json' --data 'SELECT * WHERE { ?s ?p ?o } LIMIT 10' 
+
+curl http://localhost:7878/query -H 'Content-Type:application/sparql-query' -H 'application/n-triples' --data 'DESCRIBE <http://scigraph.springernature.com/pub.10.1186/1999-3110-54-38>'
+
+### Delete
+curl http://localhost:7878/update -X POST -H 'Content-Type: application/sparql-update' --data 'DELETE WHERE { ?s ?p ?o }' 
+
+## SPARQL
+
+
+Queries
+
+PREFIX schema: <http://schema.org/>
+select * where { 
+  ?person schema:mainEntityOfPage <https://species.wikimedia.org/wiki/Robert_Lücking>. 
+	?work schema:author ?person .
+  ?work schema:name ?name .
+  OPTIONAL {
+  ?work schema:url ?url .
+  }
+  OPTIONAL {
+  ?work schema:isAccessibleForFree ?free .
+  }
+  OPTIONAL {
+  ?work schema:mainEntityOfPage ?article .
+  }
+}
+
 
 
