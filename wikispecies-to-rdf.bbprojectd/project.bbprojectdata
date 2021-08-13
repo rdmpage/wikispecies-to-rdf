@@ -9,6 +9,7 @@
 		<string>231E25F7-3A6B-40B5-AE70-9785E2F1A8E8</string>
 		<string>75D63379-DA38-424D-B084-E60683AF50A0</string>
 		<string>9AEDA3A0-B1F3-4D86-A72C-79FE8F481880</string>
+		<string>75A2E635-6C8C-4B88-8BAE-04636BB7EF2F</string>
 		<string>13F432E4-715F-47FE-8671-3D137538846F</string>
 		<string>41189ED5-DE10-426A-A1CC-E84F9BD57D3D</string>
 		<string>EB02C7A7-62A9-4350-B2C3-035652325739</string>
@@ -158,6 +159,54 @@
 			<string>reference_parser.php</string>
 			<key>ItemType</key>
 			<string>FileReference</string>
+			<key>UserOverrideItemName</key>
+			<true/>
+		</dict>
+		<key>75A2E635-6C8C-4B88-8BAE-04636BB7EF2F</key>
+		<dict>
+			<key>ItemData</key>
+			<dict>
+				<key>BookmarkData</key>
+				<data>
+				Ym9va/QCAAAAAAQQMAAAAGobI/cWDx6DkQO+ifpiQSmv
+				VXWliZ+UIZFEeLWX5qLA8AEAAAQAAAADAwAAAAgAKAUA
+				AAABAQAAVXNlcnMAAAAFAAAAAQEAAHJwYWdlAAAACwAA
+				AAEBAABEZXZlbG9wbWVudAASAAAAAQEAAHdpa2lzcGVj
+				aWVzLXRvLXJkZgAAEAAAAAEBAABqc29uLWxkLWV4YW1w
+				bGVzFAAAAAEGAAAQAAAAIAAAADAAAABEAAAAYAAAAAgA
+				AAAEAwAAEGcCAAAAAAAIAAAABAMAAIV0DQAAAAAACAAA
+				AAQDAAAjWA4AAAAAAAgAAAAEAwAAvJe5BwMAAAAIAAAA
+				BAMAAOiluQcDAAAAFAAAAAEGAACUAAAApAAAALQAAADE
+				AAAA1AAAAAgAAAAABAAAQcNjXnHoidMYAAAAAQIAAAIA
+				AAAAAAAADwAAAAAAAAAAAAAAAAAAAAgAAAAEAwAAAwAA
+				AAAAAAAEAAAAAwMAAPUBAAAIAAAAAQkAAGZpbGU6Ly8v
+				DAAAAAEBAABNYWNpbnRvc2ggSEQIAAAABAMAAADgBANp
+				AAAACAAAAAAEAABBvt1dYgAAACQAAAABAQAAMjVFNDI4
+				NkQtNzEyQy0zODk5LUI0M0YtNUQzRjZBOEJEMTIxGAAA
+				AAECAACBAAAAAQAAAO8TAAABAAAAAAAAAAAAAAABAAAA
+				AQEAAC8AAAAAAAAAAQUAAMwAAAD+////AQAAAAAAAAAQ
+				AAAABBAAAHgAAAAAAAAABRAAAOQAAAAAAAAAEBAAABAB
+				AAAAAAAAQBAAAAABAAAAAAAAAiAAANwBAAAAAAAABSAA
+				AEwBAAAAAAAAECAAAFwBAAAAAAAAESAAAJABAAAAAAAA
+				EiAAAHABAAAAAAAAEyAAAIABAAAAAAAAICAAALwBAAAA
+				AAAAMCAAAOgBAAAAAAAAAcAAADABAAAAAAAAEcAAACAA
+				AAAAAAAAEsAAAEABAAAAAAAAENAAAAQAAAAAAAAA
+				</data>
+				<key>FileURL</key>
+				<string>file:///Users/rpage/Development/wikispecies-to-rdf/json-ld-examples/</string>
+				<key>HasSecurityScope</key>
+				<true/>
+				<key>RelativePath</key>
+				<string>./json-ld-examples</string>
+				<key>TypeID</key>
+				<string>_CFileLocator</string>
+				<key>Version</key>
+				<integer>1</integer>
+			</dict>
+			<key>ItemName</key>
+			<string>json-ld-examples</string>
+			<key>ItemType</key>
+			<string>FolderReference</string>
 			<key>UserOverrideItemName</key>
 			<true/>
 		</dict>
