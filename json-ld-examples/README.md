@@ -2,6 +2,14 @@
 
 Real world JSON-LD examples we can use for inspiration.
 
+## Catalogue of Life
+
+Based on TaxonName DRAFT Profile:
+https://bioschemas.org/profiles/TaxonName/0.1-DRAFT/
+https://bioschemas.org/profiles/Taxon/0.6-RELEASE/
+
+Embedded in HTML using `<script type="application/ld+json"></script>` tags.
+
 ## ORCID
 
 ```curl -L -H 'Accept: application/ld+json' https://orcid.org/0000-0002-8104-7761```

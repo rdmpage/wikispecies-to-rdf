@@ -1,0 +1,75 @@
+
+{
+  "@context": [
+    "https://schema.org/",
+    {
+      "dwc": "http://rs.tdwg.org/dwc/terms/",
+      "col": "http://catalogueoflife.org/terms/"
+    }
+  ],
+  "@type": "Taxon",
+  "additionalType": [
+    "dwc:Taxon",
+    "http://rs.tdwg.org/ontology/voc/TaxonConcept#TaxonConcept"
+  ],
+  "identifier": [
+    {
+      "@type": "PropertyValue",
+      "name": "dwc:taxonID",
+      "propertyID": "http://rs.tdwg.org/dwc/terms/taxonID",
+      "value": "5TVFG"
+    },
+    {
+      "@type": "PropertyValue",
+      "name": "col:ID",
+      "propertyID": "http://catalogueoflife.org/terms/ID",
+      "value": "5TVFG"
+    }
+  ],
+  "name": "Allacta deleportei Roth, L. M., 1995",
+  "scientificName": {
+    "@type": "TaxonName",
+    "name": "Allacta deleportei",
+    "author": "Roth, L. M., 1995",
+    "taxonRank": "Species"
+    ,"isBasedOn": {
+      "@type": "ScholarlyArticle",
+      "name": "Roth, L. M. New species of Allacta Saussure and Zehntner from Papua New Guinea, Irian Jaya, and Sarawak (Blattaria, Blattellidae: Pseudophyllodromiinae). Papua New Guinea J. Agric. 38:51-71. (1995)."
+    }
+  },
+  "taxonRank": [
+    "http://api.catalogueoflife.org/vocab/rank/Species",
+    "Species"
+  ],
+
+
+
+  "parentTaxon": {
+    "@type": "Taxon",
+    "name": "Allacta",
+    "scientificName": {
+      "@type": "TaxonName",
+      "name": "Allacta",
+      "author": "",
+      "taxonRank": "Genus"
+    },
+    "identifier": [
+      {
+        "@type": "PropertyValue",
+        "name": "dwc:taxonID",
+        "propertyID": "http://rs.tdwg.org/dwc/terms/taxonID",
+        "value": "RZX"
+      },
+      {
+        "@type": "PropertyValue",
+        "name": "col:ID",
+        "propertyID": "http://catalogueoflife.org/terms/ID",
+        "value": "RZX"
+      }
+    ],
+    "taxonRank": [
+      "http://rs.gbif.org/vocabulary/gbif/rank/Genus",
+      "Genus"
+    ]
+  }
+}
