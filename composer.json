@@ -1,0 +1,12 @@
+{
+    "name": "rpage/wikispecies-to-rdf",
+    "require": {
+        "easyrdf/easyrdf": "^1.1"
+    },
+    "authors": [
+        {
+            "name": "Roderic Page",
+            "email": "rdmpage@gmail.com"
+        }
+    ]
+}
