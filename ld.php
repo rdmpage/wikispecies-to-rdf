@@ -27,13 +27,29 @@ function filesafe_name($name)
 
 $page = 'Glyptosceloides';
 //$page = 'TemplateAskevold_&_Flowers,_1994';
-$page = 'TemplateTarmann_&_Cock,_2019';
+//$page = 'TemplateTarmann_&_Cock,_2019';
 //$page = 'Template:Urtubey et al., 2016';
 //$page = 'TemplateDe_Vos,_2019a';
 //$page = 'Template:O\'Brien, Askevold & Morimoto, 1994';
-$page = 'Julien Achard';
+//$page = 'Julien Achard';
+//$page = 'Redonographa chilensis';
+//$page = 'Template:Lücking_et_al.,_2013a';
+//$page = 'Robert Lücking';
+//$page = 'Template:Lücking,_Parnmen_&_Lumbsch,_2012';
+//$page = 'Template:Lücking_et_al.,_2017c';
+
+$page = 'Template:Askevold_%26_Flowers,_1994';
 
 $xml = file_get_contents('cache/' . filesafe_name($page) . '.xml');
+
+echo $xml;
+
+if ($xml == '')
+{
+	echo "*** Error ***\n";
+	echo "XML empty\n";
+	exit();
+}
 
 $dom= new DOMDocument;
 $dom->loadXML($xml);
@@ -111,7 +127,7 @@ foreach($nodeCollection as $node)
 					$refname = str_replace('&', '%26', $refname);	
 					
 					$citation = new stdclass;
-					$citation->name = 'Template:' . $refname;
+					$citation->wiki_name = 'Template:' . $refname;
 					$obj->references[] = $citation;
 					
 					$matched = true;	
@@ -127,7 +143,7 @@ foreach($nodeCollection as $node)
 					$refname = str_replace('&', '%26', $refname);	
 				
 					$citation = new stdclass;
-					$citation->name = 'Template:' . $refname;
+					$citation->wiki_name = 'Template:' . $refname;
 					$obj->references[] = $citation;
 					
 					$matched = true;	
@@ -178,192 +194,221 @@ if (isset($obj->references) && count($obj->references) > 0)
 	foreach ($obj->references as $reference)
 	{
 		$id = '';
-		
-		// Do we have an external identifier?
-		if (isset($reference->csl))
-		{
-			if ($id == '')
-			{
-				if (isset($reference->csl->DOI))
-				{
-					$id = 'https://doi.org/' .  $reference->csl->DOI;
-				}
-			}
-
-			if ($id == '')
-			{
-				if (isset($reference->csl->HANDLE))
-				{
-					$id = 'https://hdl.handle.net/' .  $reference->csl->HANDLE;
-				}
-			}
-
-		}	
-
 		$work = null;
-		if ($id == '')
+		
+		if (isset($reference->wiki_name))
 		{
+			// this is a tranclusion, so add a link...
+			
 			$work = $graph->newBNode('schema:CreativeWork');
+			
+			$wiki_link = 'https://species.wikimedia.org/wiki/' . $reference->wiki_name;
+			$work->addResource('schema:mainEntityOfPage', $wiki_link );
+			
+			// we are citing this reference
+			$page->addResource('schema:citation', $work);		
+			
+		
 		}
 		else
 		{
-			$work = $graph->resource($id, 'schema:CreativeWork');	
-		}
-			
-		// text string which means this is an actual reference
-		if (isset($reference->string))
-		{
-			$work->add('schema:description', $reference->string);
-			
-			// any extra info we can extract?
-			
-			if (preg_match('/\{\{\s*access\s*\|\s*open\s*\}\}/i', $reference->string))
-			{
-				$work->add('schema:isAccessibleForFree', true);
-			}
-			if (preg_match('/\{\s*\{access\s*\|\s*closed\s*\}\}/i', $reference->string))
-			{
-				$work->add('schema:isAccessibleForFree', false);
-			}
-			
-			
-		}	
-	
-		// to RDF
-		if (isset($reference->csl))
-		{
-			if (isset($reference->csl->title))
-			{
-				$work->add('schema:name', strip_tags($reference->csl->title));
-			}
-
-			// simple literals
-			if (isset($reference->csl->volume))
-			{
-				$work->add('schema:volumeNumber', $reference->csl->volume);
-			}
-			if (isset($reference->csl->issue))
-			{
-				$work->add('schema:issueNumber', $reference->csl->issue);
-			}
-			if (isset($reference->csl->page))
-			{
-				$work->add('schema:pagination', $reference->csl->page);
-			}
+			// this is an actual reference
 		
-			// date
-			if (isset($reference->csl->issued))
+			// Do we have an external identifier?
+			if (isset($reference->csl))
 			{
-				$date = '';
-				$d = $reference->csl->issued->{'date-parts'}[0];
-		
-				// sanity check
-				if (is_numeric($d[0]))
+				if ($id == '')
 				{
-					if ( count($d) > 0 ) $year = $d[0] ;
-					if ( count($d) > 1 ) $month = preg_replace ( '/^0+(..)$/' , '$1' , '00'.$d[1] ) ;
-					if ( count($d) > 2 ) $day = preg_replace ( '/^0+(..)$/' , '$1' , '00'.$d[2] ) ;
-					if ( isset($month) and isset($day) ) $date = "$year-$month-$day";
-					else if ( isset($month) ) $date = "$year-$month-00";
-					else if ( isset($year) ) $date = "$year-00-00";
-				
-					if (0)
+					if (isset($reference->csl->DOI))
 					{
-						// proper RDF
-						$work->add('schema:datePublished', new \EasyRdf\Literal\Date($date));
+						$id = 'https://doi.org/' .  $reference->csl->DOI;
+					}
+				}
+
+				if ($id == '')
+				{
+					if (isset($reference->csl->HANDLE))
+					{
+						$id = 'https://hdl.handle.net/' .  $reference->csl->HANDLE;
+					}
+				}
+
+			}	
+			
+			if ($id == '')
+			{
+				$work = $graph->newBNode('schema:CreativeWork');
+			}
+			else
+			{
+				$work = $graph->resource($id, 'schema:CreativeWork');	
+			}
+			
+			// is this page JUST about this reference? Yes? Then use mainEntity
+			if ($obj->type == 'reference')
+			{
+				$page->addResource('schema:mainEntity', $work);
+				$work->addResource('schema:mainEntityOfPage', $obj->url);
+			}	
+			else
+			{
+				// we are citing this reference
+				$page->addResource('schema:citation', $work);			
+			}					
+			
+			// text string which means this is an actual reference
+			if (isset($reference->string))
+			{
+				$work->add('schema:description', $reference->string);
+			
+				// any extra info we can extract?
+			
+				if (preg_match('/\{\{\s*access\s*\|\s*open\s*\}\}/i', $reference->string))
+				{
+					$work->add('schema:isAccessibleForFree', true);
+				}
+				if (preg_match('/\{\s*\{access\s*\|\s*closed\s*\}\}/i', $reference->string))
+				{
+					$work->add('schema:isAccessibleForFree', false);
+				}
+						
+			}	
+	
+			// to RDF
+			if (isset($reference->csl))
+			{
+				if (isset($reference->csl->title))
+				{
+					$work->add('schema:name', strip_tags($reference->csl->title));
+				}
+
+				// simple literals
+				if (isset($reference->csl->volume))
+				{
+					$work->add('schema:volumeNumber', $reference->csl->volume);
+				}
+				if (isset($reference->csl->issue))
+				{
+					$work->add('schema:issueNumber', $reference->csl->issue);
+				}
+				if (isset($reference->csl->page))
+				{
+					$work->add('schema:pagination', $reference->csl->page);
+				}
+		
+				// date
+				if (isset($reference->csl->issued))
+				{
+					$date = '';
+					$d = $reference->csl->issued->{'date-parts'}[0];
+		
+					// sanity check
+					if (is_numeric($d[0]))
+					{
+						if ( count($d) > 0 ) $year = $d[0] ;
+						if ( count($d) > 1 ) $month = preg_replace ( '/^0+(..)$/' , '$1' , '00'.$d[1] ) ;
+						if ( count($d) > 2 ) $day = preg_replace ( '/^0+(..)$/' , '$1' , '00'.$d[2] ) ;
+						if ( isset($month) and isset($day) ) $date = "$year-$month-$day";
+						else if ( isset($month) ) $date = "$year-$month-00";
+						else if ( isset($year) ) $date = "$year-00-00";
+				
+						if (0)
+						{
+							// proper RDF
+							$work->add('schema:datePublished', new \EasyRdf\Literal\Date($date));
+						}
+						else
+						{
+							// simple literal
+							$work->add('schema:datePublished', $date);
+					
+						}
+					}				
+				}		
+		
+				// authors (how do we handle order?)
+				if (isset($reference->csl->author))
+				{
+					foreach ($reference->csl->author as $creator)
+					{
+						$author = $graph->newBNode('schema:Person');
+				
+						if (isset($creator->WIKISPECIES))
+						{
+							$author->addResource('schema:mainEntityOfPage', 'https://species.wikimedia.org/wiki/' . $creator->WIKISPECIES);
+						}
+				
+						if (isset($creator->literal))
+						{
+							$author->add('schema:name', $creator->literal);
+						}
+				
+						$work->add('schema:author', $author);
+			
+					}		
+				}
+				
+				// container
+				if (isset($reference->csl->{'container-title'}))
+				{
+					$container = $graph->newBNode('schema:Periodical');
+					$container->add('schema:name', $reference->csl->{'container-title'});
+				
+					if (isset($reference->csl->ISSN))
+					{
+						$container->add('schema:issn', $reference->csl->ISSN[0]);
+						$container->addResource('schema:mainEntityOfPage', 'https://species.wikimedia.org/wiki/ISSN_' . $reference->csl->ISSN[0]);
+		
+					}					
+					$work->add('schema:isPartOf', $container);
+				}
+			
+				// identifiers sameAs/seeAlso
+				if (isset($reference->csl->BHL))
+				{
+					$work->addResource('schema:seeAlso', 'https://www.biodiversitylibrary.org/page/' . $reference->csl->BHL);
+				}
+				if (isset($reference->csl->JSTOR))
+				{
+					$work->addResource('schema:sameAs', 'https://www.jstor.org/stable/' . $reference->csl->JSTOR);
+				}
+			
+			
+				// identifiers as property-value pairs
+				if (isset($reference->csl->DOI))
+				{
+					$identifier = $graph->newBNode('schema:PropertyValue');
+					$identifier->add('schema:name', 'doi');
+					$identifier->add('schema:value', $reference->csl->DOI);
+			
+					$work->add('schema:identifier', $identifier);
+				}
+
+				// URL(s)?
+				if (isset($reference->csl->URL))
+				{
+					$urls = array();
+					if (!is_array($reference->csl->URL))
+					{
+						$urls = array($reference->csl->URL);
 					}
 					else
 					{
-						// simple literal
-						$work->add('schema:datePublished', $date);
-					
+						$urls = $reference->csl->URL;
 					}
-				}				
-			}		
-		
-			// authors
-			if (isset($reference->csl->author))
-			{
-				foreach ($reference->csl->author as $creator)
-				{
-					$author = $graph->newBNode('schema:Person');
 				
-					if (isset($creator->WIKISPECIES))
+					foreach ($urls as $url)
 					{
-						$author->addResource('schema:mainEntityOfPage', 'https://species.wikimedia.org/wiki/' . $creator->WIKISPECIES);
+						$work->addResource('schema:url', $url);
 					}
-				
-					if (isset($creator->literal))
-					{
-						$author->add('schema:name', $creator->literal);
-					}
-				
-					$work->add('schema:author', $author);
-			
-				}		
-			}
-				
-			// container
-			if (isset($reference->csl->{'container-title'}))
-			{
-				$container = $graph->newBNode('schema:Periodical');
-				$container->add('schema:name', $reference->csl->{'container-title'});
-				
-				if (isset($reference->csl->ISSN))
-				{
-					$container->add('schema:issn', $reference->csl->ISSN[0]);
-					$container->addResource('schema:mainEntityOfPage', 'https://species.wikimedia.org/wiki/ISSN_' . $reference->csl->ISSN[0]);
-		
-				}					
-				$work->add('schema:isPartOf', $container);
-			}
-			
-			// identifiers
-			if (isset($reference->csl->BHL))
-			{
-				$work->addResource('schema:sameAs', 'https://www.biodiversitylibrary.org/page/' . $reference->csl->BHL);
-			}
-			if (isset($reference->csl->JSTOR))
-			{
-				$work->addResource('schema:sameAs', 'https://www.jstor.org/stable/' . $reference->csl->JSTOR);
-			}
-			
-			if (isset($reference->csl->URL))
-			{
-				$urls = array();
-				if (!is_array($reference->csl->URL))
-				{
-					$urls = array($reference->csl->URL);
 				}
-				else
-				{
-					$urls = $reference->csl->URL;
-				}
-				
-				foreach ($urls as $url)
-				{
-					$work->addResource('schema:url', $url);
-				}
-			}
 		
 	
+			}
+			
 		}
 	
-		// link to page
 	
-		switch ($obj->type)
-		{
-			case 'reference':
-				// this page is just about this reference
-				$page->addResource('schema:mainEntity', $work);
-				$work->addResource('schema:mainEntityOfPage', $obj->url);
-				break;
-			
-			default:
-				$page->add('schema:citation', $work);
-				break;
-	
-		}
 
 	}
 }

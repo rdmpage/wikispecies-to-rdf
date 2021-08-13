@@ -39,9 +39,12 @@ $page_names = array(
 //'ISSN_1210-5759',
 //'Template:Tarmann_%26_Cock,_2019'
 //'Julien Achard',
-//'Glyptosceloides',
+'Glyptosceloides',
 //'Template:Urtubey et al., 2016'
-'Julien Achard',
+//'Julien Achard',
+//'Redonographa chilensis',
+//'Robert Lücking',
+'Template:Askevold_%26_Flowers,_1994',
 );
 
 
@@ -116,7 +119,7 @@ while (count($page_names) > 0)
 					{
 						$refname = $m['refname'];
 						$refname = str_replace(' ', '_', $refname);
-						$refname = str_replace('&', '%26', $refname);						
+						//$refname = str_replace('&', '%26', $refname);						
 						$page_names[] = 'Template:' . $refname;							
 						$matched = true;	
 					}			
@@ -128,7 +131,7 @@ while (count($page_names) > 0)
 					{
 						$refname = $m['refname'];
 						$refname = str_replace(' ', '_', $refname);
-						$refname = str_replace('&', '%26', $refname);						
+						//$refname = str_replace('&', '%26', $refname);						
 						$page_names[] = 'Template:' . $refname;							
 						$matched = true;	
 					}			
