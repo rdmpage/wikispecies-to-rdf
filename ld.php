@@ -22,6 +22,9 @@ function filesafe_name($name)
 
 }
 
+//----------------------------------------------------------------------------------------
+
+
 $page = 'Glyptosceloides';
 //$page = 'TemplateAskevold_&_Flowers,_1994';
 $page = 'TemplateTarmann_&_Cock,_2019';
@@ -39,7 +42,6 @@ $xpath = new DOMXPath($dom);
 $xpath->registerNamespace("wiki", "http://www.mediawiki.org/xml/export-0.10/");
 
 
-
 $obj = new stdclass;
 
 $obj->type = 'unknown';
@@ -55,9 +57,7 @@ $nodeCollection = $xpath->query ("//wiki:title");
 foreach($nodeCollection as $node)
 {
 	$obj->title = $node->firstChild->nodeValue;
-	$obj->url = 'https://species.wikimedia.org/wiki/' . $obj->title;
-	$obj->url = str_replace(' ', '_', $obj->url);
-	$obj->url = str_replace('&', '%26', $obj->url);
+	$obj->url = 'https://species.wikimedia.org/wiki/' . filesafe_name($obj->title);
 }	
 
 $nodeCollection = $xpath->query ("//wiki:timestamp");
@@ -374,7 +374,10 @@ if (isset($obj->references) && count($obj->references) > 0)
 $format = \EasyRdf\Format::getFormat('ntriples');
 $triples = $graph->serialise($format);
 
-echo $triples . "\n";
+$base_filename = filesafe_name($obj->title);
+$ld_filename = $base_filename . '.nt';
+
+file_put_contents($ld_filename, $triples);
 
 $context = new stdclass;
 $context->{'@vocab'} = 'http://schema.org/';
@@ -395,6 +398,10 @@ $data = $graph->serialise($format, $options);
 
 $obj = json_decode( $data);
 echo json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+$ld_filename = $base_filename . '.json';
+
+file_put_contents($ld_filename, json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
 
 
