@@ -8,6 +8,14 @@ Real world JSON-LD examples we can use for inspiration.
 
 Note the use of `@reverse` to associate person with publications.
 
+## ResearchGate
+
+At one point ResearchGate embedded schema.org in their web pages, but they seemed to have stopped doing this?
+
+## SciGraph
+
+```curl -L http://scigraph.springernature.com/pub.10.1007/s00606-016-1316-4.json```
+
 ## Zenodo
 
 ```curl -H 'Accept: application/ld+json' https://zenodo.org/api/records/3538376```
