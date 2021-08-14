@@ -10,7 +10,9 @@ If the wiki page is for an individual reference (i.e., is a template) then we ad
 
 For people we typically have no identifiers available on the Wikispecies page, so links between people and publications are made using `schema:mainEntityOfPage` on the RDF for a reference.
 
+## JSON-LD
 
+https://validator.schema.org
 
 ## Parsing Wikispecies references
 
@@ -49,7 +51,7 @@ curl http://localhost:7878/update -X POST -H 'Content-Type: application/sparql-u
 ## SPARQL
 
 
-Queries
+#### Papers by Robert_Lücking
 
 PREFIX schema: <http://schema.org/>
 select * where { 
@@ -66,6 +68,8 @@ select * where {
   ?work schema:mainEntityOfPage ?article .
   }
 }
+
+#### 
 
 
 
