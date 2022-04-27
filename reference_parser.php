@@ -39,6 +39,11 @@ function process_references ($obj)
 					{
 						$ignore = true;
 					}
+					else
+					{
+						// try and do some cleanup
+						$csl->unstructured = preg_replace('/\|(\w+)/', '', $csl->unstructured);
+					}
 				}
 
 				if (!$ignore)

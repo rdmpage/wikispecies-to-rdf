@@ -50,8 +50,191 @@ curl http://localhost:7878/update -X POST -H 'Content-Type: application/sparql-u
 
 ## SPARQL
 
+## Lists (RDF collections)
 
-#### Papers by Robert_Lücking
+SciGraph uses rdf:lists to ensure authors are ordered correctly in JSON-LD output. This means we need to be clever about how to query for authorship.
+
+See http://www.snee.com/bobdc.blog/2014/04/rdf-lists-and-sparql.html and https://stackoverflow.com/questions/17523804/is-it-possible-to-get-the-position-of-an-element-in-an-rdf-collection-in-sparql/17530689#17530689
+
+### Authors of a specific work
+
+#### Unordered list
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select * where { 
+  ?work schema:mainEntityOfPage <https://species.wikimedia.org/wiki/TemplateLücking_et_al.,_2017c>. 
+  ?work schema:author/rdf:rest*|rdf:first ?list_element .
+  ?list_element rdf:first ?author .
+  ?author schema:name ?name .
+}
+```
+
+#### Ordered list of authors
+
+Get ordered list based on https://stackoverflow.com/questions/17523804/is-it-possible-to-get-the-position-of-an-element-in-an-rdf-collection-in-sparql/17530689#17530689
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select ?name ?page (count(?mid)-1 as ?position)  where { 
+  ?work schema:mainEntityOfPage <https://species.wikimedia.org/wiki/Template:Ralph_et_al.,_2015>. 
+  
+  ?work schema:author/rdf:rest* ?mid .
+  ?mid rdf:rest* ?node .
+  ?node rdf:first ?author .
+  ?author schema:name ?name .
+  OPTIONAL {
+  	?author schema:mainEntityOfPage ?page .
+  }
+}
+group by ?author ?name ?page
+order by ?position
+```
+
+### Works
+
+#### Works with a DOI
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select *  where { 
+  ?work schema:identifier ?identifier .
+  ?identifier schema:propertyID "doi" .
+  ?identifier schema:value ?doi .
+}
+```
+
+#### Works as citation strings
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select *  where { 
+  ?work rdf:type schema:CreativeWork .
+  ?work schema:description ?description .
+}
+```
+
+#### Works listed by container title
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select *  where { 
+  ?work rdf:type schema:CreativeWork .
+  ?work schema:isPartOf ?container  .
+  ?container schema:name ?container_title
+}
+ORDER BY ?container_title
+```
+
+### Taxa
+
+#### Publications about a taxon (name)
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select *  where { 
+  
+  # citations related to a name 
+  
+  ?taxon schema:name "Glischropus" .
+  ?taxon rdf:type schema:Taxon .
+  ?page schema:mainEntity ?taxon .
+ 
+  # taxon pages either include citations directly as semi-structured strings,
+  # or transcluded them as Templates
+  {
+    # Citation in text of page
+    ?page schema:citation ?citation .
+   
+   }
+  UNION
+  {
+    # Citation is a transcluded template
+    ?page schema:citation ?transclusion .
+    ?transclusion rdf:type schema:WebPage .
+		?transclusion schema:mainEntityOfPage ?reference .
+    ?citation schema:mainEntityOfPage ?reference .
+  	   
+  }
+   ?citation rdf:type schema:CreativeWork .
+  OPTIONAL {
+    ?citation schema:name ?citation_name .
+  }
+  OPTIONAL {
+    ?citation schema:description ?citation_description .
+  }
+}
+```
+
+#### What taxa is a work about?
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select * where { 
+  
+  # What is a citation "about"?
+  
+  VALUES ?citation { <https://doi.org/10.1590/s0101-81752007000200032> }
+  ?citation rdf:type schema:CreativeWork .
+   {
+    # Citation in text of page
+    ?page schema:citation ?citation .
+   }
+  UNION
+  {
+    # Citation is a transcluded template
+   	?citation schema:mainEntityOfPage ?transclusion .    
+    ?page schema:citation ?transclusion .
+    ?transclusion rdf:type schema:WebPage .
+  }
+ 
+  OPTIONAL {
+    ?citation schema:name ?citation_name .
+  }
+  OPTIONAL {
+    ?citation schema:description ?citation_description .
+  }
+  
+ 
+  ?page schema:mainEntity ?taxon . 
+  ?taxon rdf:type schema:Taxon .
+  ?taxon schema:name ?taxon_name .
+
+}
+```
+
+
+
+
+
+
+#### Try and get taxonomic hierarchy
+
+The hierarchy is implemented using templates, and doesn’t work for species as the genus and the species will all share the same templates.
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select * 
+where { 
+ ?page schema:hasPart ?template .
+ ?page schema:mainEntity ?child_entity .
+ ?child_entity schema:name ?child_name .
+ ?template schema:parentItem ?parent .
+ ?parent schema:mainEntity ?parent_entity .
+ ?parent_entity schema:name ?parent_name .
+}
+```
+
+
+#### Old queries
 
 PREFIX schema: <http://schema.org/>
 select * where { 

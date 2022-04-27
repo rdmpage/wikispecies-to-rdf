@@ -147,6 +147,7 @@ function parse_zootaxa(string, citation) {
         break;
 
         // {{zootaxa|year|volume number|fascicle number|start page|end page|article number|PDF}}
+      case '2013':
       case '2014':
       case '2015':
       case '2016':
@@ -209,7 +210,16 @@ function parse_link(string) {
   if (result) {
     link.name = result[2];
     link.link = result[1];
+  } else {
+  	result = string.match(/^\[\[([A-Z]\w+)\]\]$/);
+
+  	if (result) {
+   	 link.name = result[1];
+   	 link.link = result[1];
+   	}
   }
+  
+  
 
   return link;
 }
@@ -268,6 +278,8 @@ function parse_reference(string) {
     var matched = false;
     var match = null;
     var pattern = '';
+    
+    
 
     if (!matched) {
       if (match = result[i].match(/^a\|(.*)\|(?:.*)/)) {
@@ -277,6 +289,17 @@ function parse_reference(string) {
         matched = true;
       }
     }
+    
+   if (!matched) {
+      if (match = result[i].match(/aut\|\[\[([A-Z]\w+)\]\]/)) {
+        pattern = match[0];
+        //alert(pattern)
+        //pattern = pattern.replace(/\|/g, "\|");
+        citation.unstructured = citation.unstructured.replace(pattern, match[1]);
+        matched = true;
+      }
+    }     
+    
     
     if (!matched) {
       if (match = result[i].match(/aut\|\[\[(.*)\|(.*)\]\]/)) {
@@ -342,6 +365,15 @@ function parse_reference(string) {
   citation.unstructured = citation.unstructured.replace(/PDF/g, '');
   citation.unstructured = citation.unstructured.replace(/\s\s+/g, ' ');
   
+  
+  citation.unstructured = citation.unstructured.replace(/abstract and full article \(\)/i, '');
+  citation.unstructured = citation.unstructured.replace(/\[Abstract & excerpt:/i, '');
+  citation.unstructured = citation.unstructured.replace(/Preview/, '');
+  
+  citation.unstructured = citation.unstructured.replace(/\s+$/, '');
+  citation.unstructured = citation.unstructured.replace(/\.(\s*\.)+$/, '.');
+  
+  
   citation.author = [];
   citation['alternative-id'] = [];
   
@@ -354,6 +386,33 @@ function parse_reference(string) {
     
   var result = null;
   var pattern = null;
+  
+  // v. basic short citation
+  // {{aut|[[Dobson]]}}, 1874. Journal of the Asiatic Society of Bengal, 43: 144.
+  if (citation.parts['VOLUME-PAGINATION'].length == 0) {
+    pattern = /\{\{aut\|\[\[[A-Z]+\w+\]\]\}\},\s+([0-9]{4})\.\s+([^\,]+),([^,]+,)?\s+((\d+)(''')?(\([^\)]+\))?:\s+(\d+))/;    
+    result = string.match(pattern);
+
+    if (result) {
+      console.log("hello " + JSON.stringify(result));
+
+      citation.parts['VOLUME-PAGINATION'].push(result[0]);
+      
+      citation.matched['VOLUME-PAGINATION'] = pattern.toString();   
+
+      citation.journal = result[2];
+      citation.volume = result[5];
+
+      if (result[7]) {
+        citation.issue = result[7];
+      }
+
+      citation.spage = result[8];
+      citation.page = citation.spage;
+      
+      //emit(i, result[i]);
+    }
+  }  
 
   // linked journal, issue not bold
   if (citation.parts['VOLUME-PAGINATION'].length == 0) {
@@ -1180,6 +1239,9 @@ function parse_reference(string) {
       
       name.WIKISPECIES = name.WIKISPECIES.replace(/\s/g, '_');
       
+      // strip anything left over related to a link
+      name.WIKISPECIES = name.WIKISPECIES.replace(/\|.*$/g, '');
+      
       citation.author.push(name);
 
       citation.parts['AUTHOR'].push(match[0]);
@@ -1548,6 +1610,15 @@ function parse_reference(string) {
     console.log(result[1]);
   }  
    
+   // [https://lasef.org/wp-content/uploads/BSEF/122-3/1947_Costa_et_al.pdf Full article (PDF).]
+  pattern = /\[(https?:\/\/[^\s]+\.pdf)\s+([^\]]+)\]/i;
+  result = string.match(pattern);
+  if (result) {
+    citation.PDF = result[1];
+    citation.parts['PDF'] = result[0];
+    citation.matched['PDF'] = pattern.toString();
+    console.log(result[1]);
+  }     
   
   // Wikispecies link
   pattern = /\[http:\/\/species.wikimedia.org\/wiki\/(Template:.*)\s*Reference page\.?\]/i;
@@ -1651,6 +1722,12 @@ function parse_reference(string) {
 
     
   }
+  
+  
+  if (citation.issue) {
+    citation.issue = citation.issue.replace(/\(/, '');
+    citation.issue = citation.issue.replace(/\)/, '');
+  }   
   
   if (citation.epage) {
     citation.epage = citation.epage.replace(/^–/, '');

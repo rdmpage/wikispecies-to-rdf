@@ -4,6 +4,10 @@
 
 /acoustic-bandana/node_modules
 
+/junk/
+
 /oxigraph/
 !/oxigraph/README.md
+
+/rdf/
 

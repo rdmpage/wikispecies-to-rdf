@@ -1,17 +1,20 @@
 <?php
 
+
+// export to RIS
+
 error_reporting(E_ALL);
 
-// Fetch pages direct from Wikispecies and optionally include transclusions
-// Use this to get some exmaple pages to play with
-
-
-require_once (dirname(__FILE__) . '/lib.php');
-
+require_once (dirname(__FILE__) . '/csl_utils.php');
+require_once (dirname(__FILE__) . '/parse.php');
+require_once (dirname(__FILE__) . '/reference_parser.php');
+require_once (dirname(__FILE__) . '/taxon_name_parser.php');
 
 //----------------------------------------------------------------------------------------
 function filesafe_name($name)
 {
+	$name = urldecode($name);
+	 
 	$name = str_replace(array_merge(
         array_map('chr', range(0, 31)),
         array('<', '>', ':', '"', '/', '\\', '|', '?', '*')
@@ -19,219 +22,51 @@ function filesafe_name($name)
     
     $name = str_replace(' ', '_', $name);
     $name = str_replace('_%26_', '_&_', $name);
-  
+    
     return $name;
 
 }
 
 //----------------------------------------------------------------------------------------
-function fetch_pages($page_names, $force = false, $include_transclusions = false)
-{
-	$cache_dir = dirname(__FILE__) . '/cache';
+function urlsafe_name($name)
+{    
+    $name = str_replace(' ', '_', $name);
+    $name = str_replace('_%26_', '_&_', $name);
+    
+    return $name;
 
-	// store any transclusions we might want to resolve
-	$to_resolve = array();
-
-	while (count($page_names) > 0)
-	{
-		$page_name = array_pop($page_names);
-
-		$filename = filesafe_name($page_name) . '.xml';
-	
-		$filename = $cache_dir . '/' . $filename;
-	
-		if (!file_exists($filename))
-		{
-			$url = 'https://species.wikimedia.org/w/index.php?title=Special:Export&pages=' . urlencode($page_name);
-	
-			echo $url . "\n";
-
-			$xml = get($url);	
-		
-			file_put_contents($filename, $xml);
-		}
-		$xml = file_get_contents($filename);
-	
-		// echo $xml;
-	
-		$dom= new DOMDocument;
-		$dom->loadXML($xml);
-		$xpath = new DOMXPath($dom);
-
-		$xpath->registerNamespace("wiki", "http://www.mediawiki.org/xml/export-0.10/");
-		
-		$nodeCollection = $xpath->query ("//wiki:text");
-		foreach($nodeCollection as $node)
-		{
-			// get text
-			$text = $node->firstChild->nodeValue;		
-			$lines = explode("\n", $text);
-		
-			$previous_line = '';
-		
-			foreach ($lines as $line)
-			{
-			
-				if ($include_transclusions)
-				{
-					$matched = false;
-				
-					// parent taxon
-					if (!$matched)
-					{
-
-						if (preg_match('/\{\{int:Taxonavigation\}\}/', $previous_line, $m))
-						{
-							if (preg_match('/^\{\{(?<refname>[^\}]+)\}\}$/u', trim($line), $m))
-							{
-								$refname = $m['refname'];
-								$refname = str_replace(' ', '_', $refname);
-								$to_resolve [] = 'Template:' . $refname;							
-								$matched = true;	
-							}			
-						}
-					}
-			
-			
-					// transcluded references
-					if (!$matched)
-					{
-						if (preg_match('/^(\*\s+)?\{\{(?<refname>[A-Z][\']?[\p{L}]+([,\s&;[a-zA-Z]+)[0-9]{4}[a-z]?)\}\}$/u', trim($line), $m))
-						{
-							$refname = $m['refname'];
-							$refname = str_replace(' ', '_', $refname);
-							$to_resolve[] = 'Template:' . $refname;							
-							$matched = true;	
-						}			
-					}
-
-					if (!$matched)
-					{
-						if (preg_match('/^\{\{(?<refname>[A-Z][\']?[\p{L}]+(.*)\s+[0-9]{4}[a-z]?)\}\}$/u', trim($line), $m))
-						{
-							$refname = $m['refname'];
-							$refname = str_replace(' ', '_', $refname);
-							$to_resolve[] = 'Template:' . $refname;							
-							$matched = true;	
-						}			
-					}
-				}
-			
-				if (trim($line) != "")						
-				{
-					$previous_line = $line;
-				}
-			}	
-		}
-	}
-	
-	return $to_resolve;
 }
 
 
 //----------------------------------------------------------------------------------------
 
-$page_names = array();
+$cache_dir = dirname(__FILE__) . '/cache';
 
 
-$page_names = array(
-//'Katsura_Morimoto',
-//'Ingolf_S._Askevold',
-//'Vasily_Viktorovich_Grebennikov',
-//'Francis_Gard_Howarth',
-//'Jan_Bezděk_(entomologist)',
-//'Rob_de_Vos'
-//'ISSN_1210-5759',
-//'Template:Tarmann_%26_Cock,_2019'
-//'Julien Achard',
-'Glyptosceloides',
-'Template:Urtubey et al., 2016',
-//'Julien Achard',
-//'Redonographa chilensis',
-//'Robert Lücking',
-'Template:Askevold_%26_Flowers,_1994',
-'Marcos_A._Raposo',
-'Pseudopipra',
-'Pseudopipra_pipra',
-'Pelargonium_carnosum',
-'Pteropodidae',
-//'James_I._Menzies',
-'Rhinolophus_xinanzhongguoensis',
-'Judith_L._Eger',
-'Darevskia',
-'Ichnotropis',
-'Hipposideros khaokhouayensis',
-'Murina walstoni',
-'Rob_de_Vos',
-'Curtis_John_Callaghan',
-'Template:Murina',
+$pages=array('Template:Curletti_&_Sakalian,_2009');
+
+$pages=array(
 'Murina',
-'Template:Vespertilionidae',
-'Vespertilionidae',
+'Template:Murina',
+'Template:Csorba_&_Bates,_2005',
+'Template:Csorba_et_al.,_2007',
+'Template:Kruskop_&_Eger,_2008',
+'Template:Furey_et_al.,_2009',
+'Template:Kuo_et_al.,_2009',
+'Template:Eger_&_Lim,_2011',
+'Template:Csorba_et_al.,_2011',
+'Template:Francis_&_Eger,_2012',
+'Template:Ruedi,_Biswas_&_Csorba,_2012',
+'Template:Soisook_et_al.,_2013a',
+'Template:Soisook_et_al.,_2013b',
+'Template:Son_et_al.,_2015a',
+'Template:Son_et_al.,_2015b',
+'Template:He,_Xiao_&_Zhou,_2016',
+'Template:Soisook_et_al.,_2017',
+);	
 
-'Glischropus',
-'Template:Glischropus',
-'Glischropus_aquilus',
-'Glischropus_javanus',
-'Glischropus_tylopus',
-'Pipistrellini',
-'Template:Pipistrellini',
-
-'Template:Csorba_et_al.,_2015',
-);
-
-
-$page_names = array(
-//'Pipistrellus papuanus',
-//'Pipistrellus',
-
-//'Hipposideridae',
-//'Template:Murina',
-//'Murina',
-'Template:Csorba & Bates, 2005',
-'Template:Csorba et al., 2007',
-'Template:Kruskop & Eger, 2008',
-'Template:Furey et al., 2009',
-'Template:Kuo et al., 2009',
-'Template:Eger & Lim, 2011',
-'Template:Csorba et al., 2011',
-'Template:Francis & Eger, 2012',
-'Template:Ruedi, Biswas & Csorba, 2012',
-'Template:Soisook et al., 2013a',
-'Template:Soisook et al., 2013b',
-'Template:Son et al., 2015a',
-'Template:Son et al., 2015b',
-'Template:He, Xiao & Zhou, 2016',
-'Template:Soisook et al., 2017',
-'Nyctalus',
-'Craseonycteris',
-);
-
-$page_names=array(
-//'Rhinolophoidea',
-//'Pipistrellus papuanus',
-//'Pipistrellus',
-//'Murina',
-//'Agrilus',
-);
-
-/*
-PREFIX wdt: <http://www.wikidata.org/prop/direct/>
-PREFIX wd: <http://www.wikidata.org/entity/>
-SELECT distinct ?species WHERE
-{
- VALUES ?root_name {"Molossidae"}
- ?root wdt:P225 ?root_name .
- ?child wdt:P171+ ?root .
- ?child wdt:P171 ?parent .
- ?child wdt:P225 ?child_name .
- ?parent wdt:P225 ?parent_name .
- ?species  schema:about ?child .
- ?species  schema:isPartOf <https://species.wikimedia.org/> .
-}
-*/
-
-$page_names = array(
+// Molossidae
+$pages=array(
 'Eumops_glaucinus',
 'Eumops_maurus',
 'Eumops_dabbenei',
@@ -469,44 +304,75 @@ $page_names = array(
 'Nyctinomops_laticaudatus_europs',
 'Tadarida_aegyptiaca_tragatus',
 'Tadarida_brasiliensis_muscula',
+'Template:Tadarida',
+'Template:Nyctinomops',
+'Template:Myopterus',
+'Template:Mormopterus',
+'Template:Molossus',
+'Template:Eumops',
+'Template:Chaerephon',
+'Template:Cynomops',
+'Template:Promops',
+'Template:Otomops',
+'Template:Cabreramops',
+'Template:Mops',
+'Template:Molossops',
+'Template:Cheiromeles',
+'Template:Sauromys',
+'Template:Platymops',
+'Template:Laurie,_1952',
+'Template:Gregorin_&_Cirranello,_2016',
+'Template:Tomopeas',
+'Template:Loureiro,_Lim_&_Engstrom,_2018',
+'Template:Tomopeatinae',
+'Template:Ralph_et_al.,_2015',
+'Template:Neoplatymops',
+'Template:Molossinae',
 );
 
 
-// Read list of page names
-if (0)
+$files = array();
+foreach ($pages as $p)
 {
-	$page_names = array();
-	
-	$filename = 'pages.txt';
-
-	$file_handle = fopen($filename, "r");
-	while (!feof($file_handle)) 
-	{
-		$page_names[] = trim(fgets($file_handle));
-	}
-
+	$files[] = filesafe_name($p) . '.xml';
 }
 
-$p = $page_names;
+foreach ($files as $filename)
+{
+	$xml = file_get_contents($cache_dir . '/' . $filename);
 
+	//echo $xml;
+	//exit();
 
-$force = true;
-$force = false;
+	if ($xml == '')
+	{
+		echo "*** Error ***\n";
+		echo "XML empty\n";
+		exit();
+	}
 
-// get pages
-$include_transclusions = true;
-$to_resolve = fetch_pages($page_names, $force, $include_transclusions);
+	$obj = xml_to_object($xml);
 
-$p = array_unique(array_merge($p, $to_resolve));
+	if ($obj)
+	{
+		// print_r($obj);
+		
+		if (isset($obj->references))
+		{
+			foreach ($obj->references as $reference)
+			{
+				if (isset($reference->csl))
+				{
+					$ris = csl_to_ris($reference->csl);
+					
+					echo $ris;
+					echo "\n";
+				}
+			}
+		
+		}
 
-// get any transclusions from the set of pages
-$include_transclusions = false;
-fetch_pages($to_resolve, $force, $include_transclusions);
-
-echo "\n\n";
-echo '$' . "pages=array(\n'";
-echo join("',\n'", $p);
-echo "',\n);\n";
-
+	}
+}
 
 ?>
