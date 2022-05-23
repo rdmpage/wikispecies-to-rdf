@@ -1,4 +1,5 @@
 /cache/
+/cache-old/
 /vendor/
 .DS_Store
 

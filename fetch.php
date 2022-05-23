@@ -471,7 +471,13 @@ $page_names = array(
 'Tadarida_brasiliensis_muscula',
 );
 
+$page_names = array('Fernando_Cesar_Penco');
 
+$page_names=array('Rhinophoridae');
+
+$page_names=array('Silvio_Shigueo_Nihei');
+
+/*
 // Read list of page names
 if (0)
 {
@@ -486,21 +492,25 @@ if (0)
 	}
 
 }
+*/
 
 $p = $page_names;
 
 
 $force = true;
-$force = false;
+//$force = false;
 
 // get pages
+$include_transclusions = false;
 $include_transclusions = true;
+
 $to_resolve = fetch_pages($page_names, $force, $include_transclusions);
 
 $p = array_unique(array_merge($p, $to_resolve));
 
 // get any transclusions from the set of pages
 $include_transclusions = false;
+$include_transclusions = true;
 fetch_pages($to_resolve, $force, $include_transclusions);
 
 echo "\n\n";

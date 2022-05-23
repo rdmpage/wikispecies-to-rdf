@@ -6,7 +6,7 @@
 error_reporting(E_ALL);
 
 require_once (dirname(__FILE__) . '/csl_utils.php');
-require_once (dirname(__FILE__) . '/parse.php');
+require_once (dirname(__FILE__) . '/parse-xml.php');
 require_once (dirname(__FILE__) . '/reference_parser.php');
 require_once (dirname(__FILE__) . '/taxon_name_parser.php');
 

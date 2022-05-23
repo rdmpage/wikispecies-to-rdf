@@ -37,6 +37,8 @@ The endpoint is http://localhost:7878
 
 curl http://localhost:7878/store?default -H 'Content-Type:application/n-triples' --data-binary '@TemplateLücking_et_al.,_2017c.nt'  --progress-bar 
 
+curl http://localhost:7878/store?graph=https://species.wikimedia.org -H 'Content-Type:application/n-triples' --data-binary '@TemplateYakovlev,_Naydenov_&_Penco,_2022.nt'  --progress-bar 
+
 curl http://localhost:7878/store?default -H 'Content-Type:application/n-triples' --data-binary '@1999-3110-54-38.nt' 
 
 ### Query
@@ -64,7 +66,7 @@ See http://www.snee.com/bobdc.blog/2014/04/rdf-lists-and-sparql.html and https:/
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 select * where { 
-  ?work schema:mainEntityOfPage <https://species.wikimedia.org/wiki/TemplateLücking_et_al.,_2017c>. 
+  ?work schema:mainEntityOfPage <https://species.wikimedia.org/wiki/Template:Nihei_et_al.,_2016>. 
   ?work schema:author/rdf:rest*|rdf:first ?list_element .
   ?list_element rdf:first ?author .
   ?author schema:name ?name .
@@ -76,22 +78,61 @@ select * where {
 Get ordered list based on https://stackoverflow.com/questions/17523804/is-it-possible-to-get-the-position-of-an-element-in-an-rdf-collection-in-sparql/17530689#17530689
 
 ```
+
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select ?name ?page (count(?mid)-1 as ?position)  where { 
-  ?work schema:mainEntityOfPage <https://species.wikimedia.org/wiki/Template:Ralph_et_al.,_2015>. 
+select ?name ?author_page ?author_name (count(?mid)-1 as ?position)
+FROM <https://species.wikimedia.org>
+WHERE { 
+  VALUES ?work { <https://doi.org/10.11646/zootaxa.4078.1.1> }
   
   ?work schema:author/rdf:rest* ?mid .
   ?mid rdf:rest* ?node .
   ?node rdf:first ?author .
   ?author schema:name ?name .
   OPTIONAL {
-  	?author schema:mainEntityOfPage ?page .
+  	?author schema:mainEntityOfPage ?author_page .
+		?author_page schema:name ?author_name .
   }
 }
-group by ?author ?name ?page
+group by ?author ?name ?author_page ?author_name
 order by ?position
 ```
+
+#### Works by an author as a list (no author order)
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+select *
+FROM <https://species.wikimedia.org>
+WHERE { 
+  ?webpage schema:name "Silvio Shigueo Nihei" .
+   ?author schema:mainEntityOfPage ?webpage .
+  ?list_element rdf:first ?author .
+  ?work schema:author/rdf:rest*|rdf:first ?list_element .
+  ?work schema:mainEntityOfPage ?page. 
+  ?work schema:name ?title .
+}
+```
+#### Works by an author (with order)
+
+```
+PREFIX schema: <http://schema.org/>
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SELECT ?work ?title (COUNT(?mid)-1 as ?position)
+FROM <https://species.wikimedia.org>
+WHERE { 
+   ?webpage schema:name "Silvio Shigueo Nihei" .
+   ?author schema:mainEntityOfPage ?webpage .
+   ?node rdf:first ?author .  
+   ?mid rdf:rest* ?node .
+  ?work schema:author/rdf:rest* ?mid .
+   ?work schema:mainEntityOfPage ?page. 
+  ?work schema:name ?title .
+}
+GROUP BY ?work ?title```
+
 
 ### Works
 

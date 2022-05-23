@@ -1,68 +1,63 @@
 <?php
 
+// Convert Wikispecies XML to RDF
+
 error_reporting(E_ALL);
 
-
-
 require_once('vendor/autoload.php');
-require_once (dirname(__FILE__) . '/parse.php');
+require_once (dirname(__FILE__) . '/parse-xml.php');
 require_once (dirname(__FILE__) . '/reference_parser.php');
 require_once (dirname(__FILE__) . '/taxon_name_parser.php');
 
 use ML\JsonLD\JsonLD;
 use ML\JsonLD\NQuads;
 
-$use_bnodes = true;
-$use_bnodes = false;
-
+$cuid = new EndyJasmi\Cuid;
 
 
 //----------------------------------------------------------------------------------------
-// Eventually it becomes clear we can't use b-nodes without causing triples tores to replicate
-// lots of triples, so create arbitrary URIs using the graph URI as the base.
-function create_bnode($graph, $type = "")
+// Create a uniquely labelled node to use instead of a b-node (Skolemisation)
+function create_skolemised_node($graph, $type = "")
 {
-	global $use_bnodes;
+	global $cuid;
+	$sknode = null;
+
+	$node_id = $cuid->cuid();
 	
-	$bnode = null;
+	$graph->getUri() . '#' . $node_id;
 	
-	if ($use_bnodes)
+	if ($type != "")
 	{
-		if ($type != "")
-		{
-			$bnode = $graph->newBNode($type);
-		}
-		else
-		{
-			$bnode = $graph->newBNode();
-		}		
+		$sknode = $graph->resource($uri, $type);
 	}
 	else
 	{
-		$bytes = random_bytes(5);
-		$node_id = bin2hex($bytes);
-		
-		// if we use fragment identifiers the rdf:list trick for JSON-LD fails :(
-		if (1)
-		{
-			$uri = '_:' . $node_id;
-		}
-		else
-		{
-			$uri = $graph->getUri() . '#' . $node_id;
-		}
+		$sknode = $graph->resource($uri);
+	}	
+	return $sknode;
+}
 
-		if ($type != "")
-		{
-			$bnode = $graph->resource($uri, $type);
-		}
-		else
-		{
-			$bnode = $graph->resource($uri);
-		}	
+//----------------------------------------------------------------------------------------
+// Create a uniquely labelled b node
+function create_bnode($graph, $type = "")
+{
+	global $cuid;
+	$bnode = null;
+
+	$node_id = $cuid->cuid();
 	
+	$uri = '_:' . $node_id; // b-node
+	
+	// echo $uri . "\n";
+	
+	if ($type != "")
+	{
+		$bnode = $graph->resource($uri, $type);
 	}
-
+	else
+	{
+		$bnode = $graph->resource($uri);
+	}	
 	return $bnode;
 }
 
@@ -443,6 +438,7 @@ function convert_to_rdf($obj)
 	
 	}
 	
+	/*
 	// a template page that is included in a wiki page about a taxon and is used to
 	// represent the taxonomic hierarchy
 	if ($obj->type == "navigation" && isset($obj->navigation))
@@ -451,6 +447,18 @@ function convert_to_rdf($obj)
 		$guess_url = 'https://species.wikimedia.org/wiki/' . $obj->navigation;
 		$page->addResource('schema:parentItem', $guess_url );
 	
+	}
+	*/
+	
+	$person = null;
+	
+	if ($obj->type == "person")
+	{
+		$person = create_bnode($graph, "schema:Person");
+		$person->add('schema:name', $obj->title);
+
+		$page->addResource('schema:mainEntity', $person);
+		$person->addResource('schema:mainEntityOfPage', $obj->url);
 	}
 
 
@@ -466,6 +474,12 @@ function convert_to_rdf($obj)
 			if (isset($reference->wiki_name))
 			{
 				// this is a tranclusion of a web page, so add a link to the page...			
+			
+				$wiki_link = 'https://species.wikimedia.org/wiki/' . $reference->wiki_name;
+				$page->addResource('schema:hasPart', $wiki_link);	
+			
+				/*
+				// this is a tranclusion of a web page, so add a link to the page...			
 				$transclusion = create_bnode($graph, 'schema:WebPage');			
 				$wiki_link = 'https://species.wikimedia.org/wiki/' . $reference->wiki_name;
 				
@@ -474,7 +488,7 @@ function convert_to_rdf($obj)
 			
 				// we are citing this reference
 				$page->addResource('schema:citation', $transclusion);	
-				
+				*/
 				
 			}
 			else
@@ -513,6 +527,7 @@ function convert_to_rdf($obj)
 					$work = $graph->resource($id, 'schema:CreativeWork');	
 				}
 			
+				
 				// is this page JUST about this reference? Yes? Then use mainEntity
 				// to link reference to this wiki page
 				if ($obj->type == 'reference')
@@ -522,9 +537,20 @@ function convert_to_rdf($obj)
 				}	
 				else
 				{
-					// we are citing this reference
-					$page->addResource('schema:citation', $work);			
-				}					
+					// we are citing this reference on a page that is, say, a taxon page
+					//$page->addResource('schema:citation', $work);	
+					//$page->addResource('schema:hasPart', $work);	
+					
+					if ($taxon)
+					{
+						$work->addResource('schema:about', $taxon);
+					}
+								
+				}
+				
+				
+				
+									
 			
 				// text string which means this is an actual reference
 				if (isset($reference->string))
@@ -536,11 +562,11 @@ function convert_to_rdf($obj)
 			
 					if (preg_match('/\{\{\s*access\s*\|\s*open\s*\}\}/i', $reference->string))
 					{
-						$work->add('schema:isAccessibleForFree', true);
+						$work->add('schema:isAccessibleForFree', 'true');
 					}
 					if (preg_match('/\{\s*\{access\s*\|\s*closed\s*\}\}/i', $reference->string))
 					{
-						$work->add('schema:isAccessibleForFree', false);
+						$work->add('schema:isAccessibleForFree', 'false');
 					}
 						
 				}	
@@ -604,553 +630,148 @@ function output_rdf($graph, $wiki_obj)
 
 	$ld_filename = $wiki_obj->base_filename . '.nt';
 
-	file_put_contents($ld_filename, $triples);
+	//file_put_contents($ld_filename, $triples);
 
-
+	
 	// JSON-LD
-
-	$context = new stdclass;
-	$context->{'@vocab'} = 'http://schema.org/';
-	$context->rdf =  "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
-	$context->dwc =  "http://rs.tdwg.org/dwc/terms/";
-	$context->tc =  "http://rs.tdwg.org/ontology/voc/TaxonConcept#";
-	$context->tn =  "http://rs.tdwg.org/ontology/voc/TaxonName#";
-
-	// author is ordered list
-	$author = new stdclass;
-	$author->{'@id'} = "author";
-	$author->{'@container'} = "@list";
-	$context->author = $author;
-
-
-	$additionalType = new stdclass;
-	$additionalType->{'@id'} = "additionalType";
-	$additionalType->{'@type'} = "@id";
-	$additionalType->{'@container'} = "@set";
-	
-	$context->{'additionalType'} = $additionalType;
-	
-
-	// Frame document
-	$frame = (object)array(
-		'@context' => $context,
-		'@type' => 'http://schema.org/WebPage'
-	);	
-
-
 	if (0)
 	{
-		// EasyRDF JSON-LD serialisation doesn't handle ordered lists :()
-		$options = array();
-		$options['compact'] = true;
-		$options['frame']= $frame;	
+		$context = new stdclass;
+		$context->{'@vocab'} = 'http://schema.org/';
+		$context->rdf =  "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+		$context->dwc =  "http://rs.tdwg.org/dwc/terms/";
+		$context->tc =  "http://rs.tdwg.org/ontology/voc/TaxonConcept#";
+		$context->tn =  "http://rs.tdwg.org/ontology/voc/TaxonName#";
 
-		$format = \EasyRdf\Format::getFormat('jsonld');
-		$data = $graph->serialise($format, $options);
-		$obj = json_decode( $data);
-	}
+		// author is ordered list
+		$author = new stdclass;
+		$author->{'@id'} = "author";
+		$author->{'@container'} = "@list";
+		$context->author = $author;
 
 
-	if (1)
-	{
+		$additionalType = new stdclass;
+		$additionalType->{'@id'} = "additionalType";
+		$additionalType->{'@type'} = "@id";
+		$additionalType->{'@container'} = "@set";
+	
+		$context->{'additionalType'} = $additionalType;
+	
+		// links as text?
+	
+
+		// Frame document
+		$frame = (object)array(
+			'@context' => $context,
+			'@type' => 'http://schema.org/WebPage'
+		);	
+	
 		// Use same libary as EasyRDF but access directly to output ordered list of authors
 		$nquads = new NQuads();
 		// And parse them again to a JSON-LD document
 		$quads = $nquads->parse($triples);		
 		$doc = JsonLD::fromRdf($quads);
-		
+	
 		$obj = JsonLD::frame($doc, $frame);
-	}
 
-	echo json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+		echo json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-	$ld_filename = $wiki_obj->base_filename . '.json';
+		$ld_filename = $wiki_obj->base_filename . '.json';
 
-	file_put_contents($ld_filename, json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+		file_put_contents($ld_filename, json_encode($obj, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+	}	
 
 }
 
+// test
+if (1)
+{
 
-$page = 'Glyptosceloides';
-$page = 'TemplateAskevold_&_Flowers,_1994';
-//$page = 'TemplateTarmann_&_Cock,_2019';
-$page = 'Template:Urtubey et al., 2016';
-//$page = 'TemplateDe_Vos,_2019a';
-//$page = 'Template:O\'Brien, Askevold & Morimoto, 1994';
-//$page = 'Julien Achard';
-//$page = 'Redonographa chilensis';
-//$page = 'Template:Lücking_et_al.,_2013a';
-//$page = 'Robert Lücking';
-//$page = 'Template:Lücking,_Parnmen_&_Lumbsch,_2012';
-//$page = 'Template:Lücking_et_al.,_2017c';
-
-//$page = 'Template:Askevold_%26_Flowers,_1994';
-
-//$page = 'Marcos_A._Raposo';
-//$page = 'Template:Stopiglia_et_al.,_2012';
-$page = 'Pseudopipra';
-//$page = 'Pseudopipra_pipra';
-//$page = 'Pelargonium_carnosum';
-//$page = 'Template:Germishuizen_%26_Meyer,_2003';
-//$page = 'Template:Kirwan_et_al.,_2016';
-
-$page = 'Template%3ATyler_%26_Menzies%2C_2013';
-$page = 'Pteropodidae';
-//$page = 'Template:Almeida_et_al.,_2011';
-//$page = 'Template%3AZhou_et_al.%2C_2009b';
-//$page = 'Rhinolophus_xinanzhongguoensis';
-//$page = 'Pseudopipra';
-//$page = 'Template%3ARuedi%2C_Eger%2C_Lim_%26_Csorba%2C_2018';
-//$page = 'Judith_L._Eger';
-$page = 'Darevskia';
-$page = 'Template:Kosushkin_%26_Grechko,_2013';
-$page = 'Ichnotropis';
-$page = 'Template:Opinion_1422';
-$page = 'Template:Edwards_et_al.,_2013';
-//$page = 'Template:Branch_%26_Broadley,_1985';
-$page = 'Hipposideros khaokhouayensis';
-
-$page = 'Template%3ACsorba_et_al.%2C_2011';
-//$page = 'Murina walstoni';
-//$page = 'Template:Murina';
-$page = 'Rob_de_Vos';
-$page = 'Template:De_Vos_%26_van_Haren,_2014';
-//$page = 'Curtis_John_Callaghan';
-//$page = 'Template:Murina';
-
-//echo $page . "\n";
-//echo filesafe_name($page) . "\n";
-
-
-$cache_dir = dirname(__FILE__) . '/cache';
-
-$files = array();
-
-// testing a page
-
-$page = 'Template:De_Vos_%26_van_Haren,_2014';
-$page = 'Curtis_John_Callaghan';
-$page = 'Template:Costa_et_al.,_2017b';
-$page = 'Template:Murina';
-//$page = 'Murina';
-
-$page = 'Template:Vespertilionidae';
-//$page = 'Vespertilionidae';
-
-
-$files = array(
-	filesafe_name($page) . '.xml'
-);
-
-$pages = array(
-
-'Glischropus',
-'Template:Glischropus',
-'Glischropus_aquilus',
-'Glischropus_javanus',
-'Glischropus_tylopus',
-'Pipistrellini',
-'Template:Pipistrellini',
-'Template:Csorba_et_al.,_2015',
-'Pipistrellus papuanus',
-'Pipistrellus',
-'Pipistrellus raceyi',
-'Template:Bates_et_al.,_2006');
-
+	$pages=array(
+	'Template:Naydenov,_Yakovlev_&_Penco,_2021',
+	'TemplateYakovlev,_Naydenov_&_Penco,_2022',
+	'Template:Yakovlev,_Penco_&_Naydenov,_2020'
+	);
+	
 $pages=array(
-//'Hipposideridae',
-/*
-'Template:Csorba & Bates, 2005',
-'Template:Csorba et al., 2007',
-'Template:Kruskop & Eger, 2008',
-'Template:Furey et al., 2009',
-'Template:Kuo et al., 2009',
-'Template:Eger & Lim, 2011',
-'Template:Csorba et al., 2011',
-'Template:Francis & Eger, 2012',
-'Template:Ruedi, Biswas & Csorba, 2012',
-'Template:Soisook et al., 2013a',
-'Template:Soisook et al., 2013b',
-'Template:Son et al., 2015a',
-'Template:Son et al., 2015b',
-'Template:He, Xiao & Zhou, 2016',
-'Template:Soisook et al., 2017',*/
-//'Template:Csorba_et_al.,_2015',
-//'Glischropus',
-'Nyctalus',
-'Craseonycteris',
-'Hipposideridae',
-);
-
-$pages=array(
-'Rhinolophoidea',
-'Template:Rhinolophoidea',
-'Template:Foley_et_al.,_2015',
-);
-
-$pages=array(
-'Murina',
-'Template:Murina',
-'Template:Csorba_&_Bates,_2005',
-'Template:Csorba_et_al.,_2007',
-'Template:Kruskop_&_Eger,_2008',
-'Template:Furey_et_al.,_2009',
-'Template:Kuo_et_al.,_2009',
-'Template:Eger_&_Lim,_2011',
-'Template:Csorba_et_al.,_2011',
-'Template:Francis_&_Eger,_2012',
-'Template:Ruedi,_Biswas_&_Csorba,_2012',
-'Template:Soisook_et_al.,_2013a',
-'Template:Soisook_et_al.,_2013b',
-'Template:Son_et_al.,_2015a',
-'Template:Son_et_al.,_2015b',
-'Template:He,_Xiao_&_Zhou,_2016',
-'Template:Soisook_et_al.,_2017',
+'Rhinophoridae',
+'Template:Rhinophoridae',
+'Template:Robineau-Desvoidy,_1863',
+'Template:Cerretti_et_al.,_2014a',
+'Template:Cerretti_et_al.,_2020',
+'Template:Kato_&_Tachi,_2016',
+'Template:Nihei,_2016',
+'Template:Nihei_et_al.,_2016',
+'Template:Wood,_Nihei_&_Araujo,_2018',
 );	
 
-
+/*
 $pages=array(
-'Agrilus',
-'Template:Agrilus',
-'Template:Curtis,_1825',
-'Template:Curletti,_2015',
-'Template:Curletti_&_Dutto,_2017',
-'Template:Curletti_&_Migliore,_2014',
-'Template:Jendek,_2012a',
-'Template:Jendek,_2013',
-'Template:Jendek,_2017',
-'Template:Jendek,_2018',
-'Template:Jendek,_2018a',
-'Template:Jendek,_2021',
-'Template:Jendek_&_Grebennikov,_2018',
-'Template:Jendek_&_Nakládal,_2017',
-'Template:Cid-Arcos_&_Pineda,_2019',
-'Template:Curletti,_1994',
-'Template:Curletti,_2001',
-'Template:Curletti,_2010',
-'Template:Curletti,_2010a',
-'Template:Curletti,_2013a',
-'Template:Curletti_&_Sakalian,_2009',
-'Template:Curletti_&_van_Harten,_2002',
-'Template:Jendek,_2001',
-'Template:Jendek,_2007',
-'Template:Jendek,_2012',
-'Template:Jendek,_2015',
-'Template:Jendek_&_Chamorro,_2012',
-'Template:Jendek_&_Grebennikov,_2009',
-'Template:Jendek_&_Nakládal,_2018',
-'Template:Królik_&_Janicki,_2005',
-'Template:Curletti_&_Pineda,_2019',
+'Rhinophoridae',
 );
+*/
 
-// Molossidae
 $pages=array(
-'Eumops_glaucinus',
-'Eumops_maurus',
-'Eumops_dabbenei',
-'Eumops_auripendulus',
-'Eumops_bonariensis',
-'Mops',
-'Myopterus',
-'Eumops_hansae',
-'Eumops_perotis',
-'Chaerephon_jobensis',
-'Molossus_pretiosus',
-'Chaerephon_tomensis',
-'Chaerephon_pumilus',
-'Molossus_sinaloae',
-'Cheiromeles_parvidens',
-'Chaerephon_bregullae',
-'Otomops_madagascariensis',
-'Molossus_currentium',
-'Molossus_barnesi',
-'Mormopterus_acetabulosus',
-'Tadarida_teniotis',
-'Eumops_underwoodi',
-'Eumops',
-'Molossus_aztecus',
-'Nyctinomops_macrotis',
-'Chaerephon_shortridgei',
-'Mormopterus_phrudus',
-'Otomops_formosus',
-'Mormopterus_beccarii',
-'Myopterus_daubentonii',
-'Tadarida_insignis',
-'Eumops_patagonicus',
-'Cheiromeles',
-'Tadarida_fulminans',
-'Otomops_martiensseni',
-'Chaerephon_russatus',
-'Mormopterus_kalinowskii',
-'Mormopterus_doriae',
-'Nyctinomops_laticaudatus',
-'Mormopterus_jugularis',
-'Mops_leucostigma',
-'Mops_nanulus',
-'Mops_brachypterus',
-'Molossops_neglectus',
-'Cynomops_greenhalli',
-'Neoplatymops_mattogrossensis',
-'Mops_congicus',
-'Mops_spurrelli',
-'Tomopeas_ravus',
-'Sauromys_petrophilus',
-'Cynomops_paranus',
-'Cynomops_mexicanus',
-'Chaerephon_nigeriae',
-'Otomops_wroughtoni',
-'Otomops',
-'Promops_nasutus',
-'Mormopterus_minutus',
-'Chaerephon_plicatus',
-'Nyctinomops_femorosaccus',
-'Mormopterus_loriae',
-'Cheiromeles_torquatus',
-'Molossus_molossus',
-'Otomops_johnstonei',
-'Mormopterus',
-'Promops',
-'Molossinae',
-'Mops_(Xiphonycteris)',
-'Sauromys',
-'Neoplatymops',
-'Cynomops',
-'Nyctinomops',
-'Eumops_wilsoni',
-'Platymops',
-'Otomops_harrisoni',
-'Mormopterus_eleryi',
-'Chaerephon_atsinanana',
-'Tomopeatinae',
-'Molossops_(Molossops)',
-'Molossus_fentoni',
-'Mops_(Mops)',
-'Tomopeas',
-'Molossus_coibensis',
-'Molossus_alvarezi',
-'Cabreramops',
-'Chaerephon_major',
-'Nyctinomops_aurispinosus',
-'Otomops_papuensis',
-'Tadarida_australis',
-'Eumops_trumbulli',
-'Otomops_secundus',
-'Tadarida_lobata',
-'Chaerephon_aloysiisabaudiae',
-'Chaerephon_ansorgei',
-'Chaerephon_leucogaster',
-'Myopterus_whitleyi',
-'Chaerephon_bivittatus',
-'Promops_centralis',
-'Tadarida_aegyptiaca',
-'Molossops',
-'Tadarida',
-'Tadarida_brasiliensis',
-'Chaerephon',
-'Molossus',
-'Chaerephon_chapini',
-'Chaerephon_solomonis',
-'Molossus_rufus',
-'Tadarida_latouchei',
-'Chaerephon_johorensis',
-'Mormopterus_planiceps',
-'Tadarida_kuboriensis',
-'Chaerephon_bemmeleni',
-'Chaerephon_gallagheri',
-'Mormopterus_norfolkensis',
-'Tadarida_ventralis',
-'Mops_niangarae',
-'Mops_mops',
-'Mops_thersites',
-'Cynomops_abrasus_abrasus',
-'Mops_(Mops)_condylurus_condylurus',
-'Sauromys_petrophilus_fitzsimonsi',
-'Sauromys_petrophilus_umbratus',
-'Chaerephon_plicatus_plicatus',
-'Cynomops_abrasus_brachymeles',
-'Cynomops_abrasus_cerastes',
-'Molossops_temminckii_temminckii',
-'Mops_(Mops)_condylurus_orientis',
-'Mops_(Mops)_midas_miarensis',
-'Chaerephon_plicatus_luzonus',
-'Cynomops_abrasus_mastivus',
-'Mops_(Xiphonycteris)_brachypterus_brachypterus',
-'Chaerephon_plicatus_insularis',
-'Mops_(Mops)_condylurus_osborni',
-'Mops_(Mops)_condylurus_wonderi',
-'Mops_(Mops)_sarasinorum_lanei',
-'Platymops_setiger_macmillani',
-'Platymops_setiger_setiger',
-'Sauromys_petrophilus_petrophilus',
-'Mops_trevori',
-'Mops_niveiventer',
-'Mops_demonstrator',
-'Mops_petersoni',
-'Mops_sarasinorum',
-'Mops_midas',
-'Mops_condylurus',
-'Cynomops_abrasus',
-'Molossops_temminckii',
-'Platymops_setiger',
-'Chaerephon_chapini_lancasteri',
-'Cheiromeles_torquatus_jacobsoni',
-'Nyctinomops_laticaudatus_yucatanicus',
-'Sauromys_petrophilus_erongensis',
-'Sauromys_petrophilus_haagneri',
-'Tadarida_fulminans_fulminans',
-'Tadarida_fulminans_mastersoni',
-'Chaerephon_bemmeleni_cistura',
-'Chaerephon_chapini_chapini',
-'Chaerephon_jobensis_colonicus',
-'Chaerephon_jobensis_jobensis',
-'Chaerephon_plicatus_dilatatus',
-'Chaerephon_plicatus_tenuis',
-'Eumops_perotis_californicus',
-'Molossops_temminckii_sylvia',
-'Molossus_molossus_pygmaeus',
-'Molossus_sinaloae_sinaloae',
-'Mormopterus_loriae_ridei',
-'Myopterus_daubentonii_daubentonii',
-'Nyctinomops_laticaudatus_ferruginea',
-'Otomops_martiensseni_icarus',
-'Promops_centralis_centralis',
-'Promops_nasutus_nasutus',
-'Tadarida_brasiliensis_intermedia',
-'Tadarida_teniotis_rueppelli',
-'Cheiromeles_torquatus_caudatus',
-'Cheiromeles_torquatus_torquatus',
-'Eumops_bonariensis_nanus',
-'Eumops_glaucinus_floridanus',
-'Eumops_perotis_perotis',
-'Eumops_underwoodi_underwoodi',
-'Molossops_temminckii_griseiventer',
-'Molossus_currentium_robustus',
-'Molossus_sinaloae_trinitatus',
-'Mormopterus_loriae_cobourgiana',
-'Mormopterus_loriae_loriae',
-'Eumops_auripendulus_major',
-'Eumops_patagonicus_beckeri',
-'Eumops_patagonicus_patagonicus',
-'Molossus_molossus_fortis',
-'Mops_(Mops)_midas_midas',
-'Mops_(Mops)_sarasinorum_sarasinorum',
-'Mops_(Xiphonycteris)_brachypterus_leonis',
-'Nyctinomops_laticaudatus_laticaudatus',
-'Tadarida_aegyptiaca_thomasi',
-'Tadarida_brasiliensis_brasiliensis',
-'Tadarida_brasiliensis_cynocephala',
-'Tadarida_ventralis_africana',
-'Tadarida_ventralis_ventralis',
-'Molossus_currentium_currentium',
-'Molossus_molossus_tropidorhynchus',
-'Mormopterus_beccarii_beccarii',
-'Tadarida_brasiliensis_antillularum',
-'Tadarida_brasiliensis_constanzae',
-'Tadarida_brasiliensis_murina',
-'Cabreramops_aequatorianus',
-'Chaerephon_bemmeleni_bemmeleni',
-'Chaerephon_nigeriae_spillmani',
-'Eumops_auripendulus_auripendulus',
-'Eumops_bonariensis_bonariensis',
-'Eumops_bonariensis_delticus',
-'Eumops_perotis_gigas',
-'Nyctinomops_laticaudatus_macarenensis',
-'Otomops_martiensseni_martiensseni',
-'Promops_centralis_davisoni',
-'Promops_centralis_occultus',
-'Promops_nasutus_downsi',
-'Promops_nasutus_fosteri',
-'Tadarida_aegyptiaca_aegyptiaca',
-'Tadarida_aegyptiaca_bocagei',
-'Tadarida_brasiliensis_mexicana',
-'Eumops_glaucinus_glaucinus',
-'Molossus_currentium_bondae',
-'Molossus_molossus_verrilli',
-'Promops_nasutus_ancilla',
-'Promops_nasutus_pamana',
-'Tadarida_aegyptiaca_sindica',
-'Tadarida_brasiliensis_bahamensis',
-'Tadarida_teniotis_teniotis',
-'Cynomops_planirostris',
-'Chaerephon_nigeriae_nigeriae',
-'Eumops_underwoodi_sonoriensis',
-'Molossus_molossus_debilis',
-'Molossus_molossus_milleri',
-'Molossus_molossus_molossus',
-'Mormopterus_beccarii_astrolabiensis',
-'Myopterus_daubentonii_albatus',
-'Nyctinomops_laticaudatus_europs',
-'Tadarida_aegyptiaca_tragatus',
-'Tadarida_brasiliensis_muscula',
-'Template:Tadarida',
-'Template:Nyctinomops',
-'Template:Myopterus',
-'Template:Mormopterus',
-'Template:Molossus',
-'Template:Eumops',
-'Template:Chaerephon',
-'Template:Cynomops',
-'Template:Promops',
-'Template:Otomops',
-'Template:Cabreramops',
-'Template:Mops',
-'Template:Molossops',
-'Template:Cheiromeles',
-'Template:Sauromys',
-'Template:Platymops',
-'Template:Laurie,_1952',
-'Template:Gregorin_&_Cirranello,_2016',
-'Template:Tomopeas',
-'Template:Loureiro,_Lim_&_Engstrom,_2018',
-'Template:Tomopeatinae',
-'Template:Ralph_et_al.,_2015',
-'Template:Neoplatymops',
-'Template:Molossinae',
+'Silvio_Shigueo_Nihei',
+'Template:Nihei_&_Toma,_2010',
+'Template:Calhau,_Lamas_&_Nihei,_2015',
+'Template:Campos_et_al.,_2015',
+'Template:Nihei,_2015',
+'Template:Nihei,_2015b',
+'Template:Calhau,_Lamas_&_Nihei,_2016',
+'Template:Dios_&_Nihei,_2016',
+'Template:Gillung_&_Nihei,_2016',
+'Template:Nihei,_2016',
+'Template:Nihei,_2016a',
+'Template:Nihei_et_al.,_2016',
+'Template:Pamplona_et_al.,_2016',
+'Template:Pinto_et_al.,_2016',
+'Template:Wolff,_Grisales_&_Nihei,_2016',
+'Template:Wolff,_Nihei_&_de_Carvalho,_2016',
+'Template:Wolff,_Nihei_&_de_Carvalho,_2016a',
+'Template:De_Campos,_Souza-Dias_&_Nihei,_2017',
+'Template:Wood,_Nihei_&_Araujo,_2018',
 );
 
 
-$pages=array(
-'Mormopterus norfolkensis',
-'Template:Mormopterus'
-);
+//$pages=array('Silvio_Shigueo_Nihei');
 
-
-
-$pages=array('Template:Curletti_&_Sakalian,_2009');
-
-$files = array();
-foreach ($pages as $p)
-{
-	$files[] = filesafe_name($p) . '.xml';
-}
-
-
-
-foreach ($files as $filename)
-{
-	$xml = file_get_contents($cache_dir . '/' . $filename);
-
-	//echo $xml;
-	//exit();
-
-	if ($xml == '')
+	$files = array();
+	foreach ($pages as $p)
 	{
-		echo "*** Error ***\n";
-		echo "XML empty\n";
-		exit();
+		$files[] = filesafe_name($p) . '.xml';
 	}
 
-	$obj = xml_to_object($xml);
+	$cache_dir = dirname(__FILE__) . '/cache';
 
-	if ($obj)
+	foreach ($files as $filename)
 	{
-		print_r($obj);
+		$xml = file_get_contents($cache_dir . '/' . $filename);
 
-		$graph = convert_to_rdf($obj);
+		//echo $xml;
+		//exit();
 
-		$obj->base_filename = filesafe_name($obj->title);
+		if ($xml == '')
+		{
+			echo "*** Error ***\n";
+			echo "XML empty\n";
+			exit();
+		}
 
-		output_rdf($graph, $obj);
+		$obj = xml_to_object($xml);
+
+		if ($obj)
+		{
+			//print_r($obj);
+
+			
+			$graph = convert_to_rdf($obj);
+
+			$obj->base_filename = filesafe_name($obj->title);
+
+			output_rdf($graph, $obj);
+			
+		}
 	}
 }
 

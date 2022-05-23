@@ -1,8 +1,8 @@
 <?php
 
+error_reporting(E_ALL);
 
-/* Parse Wikis[ecies XML */
-
+// Parse Wikis[ecies XML for one page and create a simple object with the core data.
 
 //----------------------------------------------------------------------------------------
 // Extract an object from Wikispecies XML
@@ -76,12 +76,17 @@ function xml_to_object($xml)
 			{
 				$obj->type = 'reference';
 			}
-			
+
 			// taxon navigation pages MAY be in this category
 			if (preg_match('/\[\[Category:Taxonavigation templates\]\]/', $line) && $obj->is_template)
 			{
 				$obj->type = 'navigation';
 			}
+			
+			if (preg_match('/\[\[Category:Taxon authorities\]\]/', $line) && !$obj->is_template)
+			{
+				$obj->type = 'person';
+			}								
 			
 			// taxa have Taxonavigation
 			if (preg_match('/int:Taxonavigation/', $line)  && !$obj->is_template)
@@ -97,7 +102,7 @@ function xml_to_object($xml)
 					{
 						$obj->navigation = $m['taxon'];
 						
-						// finger's crossed we've got this right
+						// fingers crossed we've got this right
 						if ($obj->type == 'unknown')
 						{
 							$obj->type = 'navigation';
@@ -151,7 +156,7 @@ function xml_to_object($xml)
 				{
 					// reference with optional page number
 					// * {{Linnaeus, 1758|190}}
-					if (preg_match('/^(\*\s+)?\{\{(?<refname>^(Commons)[A-Z][\']?[\p{L}]+,\s+[0-9]{4}[a-z]?)(\|\d+)\}\}$/u', trim($line), $m))
+					if (preg_match('/^(\*\s+)?\{\{(?<refname>[A-Z][\']?[\p{L}]+,\s+[0-9]{4}[a-z]?)(\|\d+)\}\}$/u', trim($line), $m))
 					{
 					
 						// echo "*** matched ".  __LINE__ .  " *** $line\n";			
@@ -171,7 +176,7 @@ function xml_to_object($xml)
 			
 				if (!$matched_reference)
 				{
-					if (preg_match('/^(\*\s+)?\{\{(?<refname>^(Commons)[A-Z][\']?[\p{L}]+([,\s&;[a-zA-Z]+)[0-9]{4}[a-z]?)\}\}$/u', trim($line), $m))
+					if (preg_match('/^(\*\s+)?\{\{(?<refname>[A-Z][\']?[\p{L}]+([,\s&;[a-zA-Z]+)[0-9]{4}[a-z]?)\}\}$/u', trim($line), $m))
 					{
 					
 						// echo "*** matched ".  __LINE__ .  " *** $line\n";	
@@ -190,7 +195,7 @@ function xml_to_object($xml)
 
 				if (!$matched_reference)
 				{
-					if (preg_match('/^\{\{(?<refname>^(Commons)[A-Z][\']?[\p{L}]+(.*)\s+[0-9]{4}[a-z]?)\}\}$/u', trim($line), $m))
+					if (preg_match('/^\{\{(?<refname>[A-Z][\']?[\p{L}]+(.*)\s+[0-9]{4}[a-z]?)\}\}$/u', trim($line), $m))
 					{
 						$refname = $m['refname'];
 						$refname = str_replace(' ', '_', $refname);
