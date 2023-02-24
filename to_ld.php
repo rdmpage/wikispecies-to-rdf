@@ -693,49 +693,47 @@ if (1)
 	'Template:Yakovlev,_Penco_&_Naydenov,_2020'
 	);
 	
-$pages=array(
-'Rhinophoridae',
-'Template:Rhinophoridae',
-'Template:Robineau-Desvoidy,_1863',
-'Template:Cerretti_et_al.,_2014a',
-'Template:Cerretti_et_al.,_2020',
-'Template:Kato_&_Tachi,_2016',
-'Template:Nihei,_2016',
-'Template:Nihei_et_al.,_2016',
-'Template:Wood,_Nihei_&_Araujo,_2018',
-);	
+	$pages=array(
+	'Rhinophoridae',
+	'Template:Rhinophoridae',
+	'Template:Robineau-Desvoidy,_1863',
+	'Template:Cerretti_et_al.,_2014a',
+	'Template:Cerretti_et_al.,_2020',
+	'Template:Kato_&_Tachi,_2016',
+	'Template:Nihei,_2016',
+	'Template:Nihei_et_al.,_2016',
+	'Template:Wood,_Nihei_&_Araujo,_2018',
+	);	
 
-/*
-$pages=array(
-'Rhinophoridae',
-);
-*/
+	/*
+	$pages=array(
+	'Rhinophoridae',
+	);
+	*/
 
-$pages=array(
-'Silvio_Shigueo_Nihei',
-'Template:Nihei_&_Toma,_2010',
-'Template:Calhau,_Lamas_&_Nihei,_2015',
-'Template:Campos_et_al.,_2015',
-'Template:Nihei,_2015',
-'Template:Nihei,_2015b',
-'Template:Calhau,_Lamas_&_Nihei,_2016',
-'Template:Dios_&_Nihei,_2016',
-'Template:Gillung_&_Nihei,_2016',
-'Template:Nihei,_2016',
-'Template:Nihei,_2016a',
-'Template:Nihei_et_al.,_2016',
-'Template:Pamplona_et_al.,_2016',
-'Template:Pinto_et_al.,_2016',
-'Template:Wolff,_Grisales_&_Nihei,_2016',
-'Template:Wolff,_Nihei_&_de_Carvalho,_2016',
-'Template:Wolff,_Nihei_&_de_Carvalho,_2016a',
-'Template:De_Campos,_Souza-Dias_&_Nihei,_2017',
-'Template:Wood,_Nihei_&_Araujo,_2018',
-);
-
-
-//$pages=array('Silvio_Shigueo_Nihei');
-
+	$pages=array(
+	'Silvio_Shigueo_Nihei',
+	'Template:Nihei_&_Toma,_2010',
+	'Template:Calhau,_Lamas_&_Nihei,_2015',
+	'Template:Campos_et_al.,_2015',
+	'Template:Nihei,_2015',
+	'Template:Nihei,_2015b',
+	'Template:Calhau,_Lamas_&_Nihei,_2016',
+	'Template:Dios_&_Nihei,_2016',
+	'Template:Gillung_&_Nihei,_2016',
+	'Template:Nihei,_2016',
+	'Template:Nihei,_2016a',
+	'Template:Nihei_et_al.,_2016',
+	'Template:Pamplona_et_al.,_2016',
+	'Template:Pinto_et_al.,_2016',
+	'Template:Wolff,_Grisales_&_Nihei,_2016',
+	'Template:Wolff,_Nihei_&_de_Carvalho,_2016',
+	'Template:Wolff,_Nihei_&_de_Carvalho,_2016a',
+	'Template:De_Campos,_Souza-Dias_&_Nihei,_2017',
+	'Template:Wood,_Nihei_&_Araujo,_2018',
+	'Template:Alcantara,_Gracioli_&_Nihei,_2019',
+	);
+	
 	$files = array();
 	foreach ($pages as $p)
 	{

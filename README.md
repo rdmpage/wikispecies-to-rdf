@@ -27,19 +27,27 @@ Service will then be available on http://localhost:3000 The service takes a Wiki
 
 I’m using [Oxigraph](https://crates.io/crates/oxigraph_server). Install this using `cargo install oxigraph_server`.
 
-Start the server in the same directory that you want the server’s files stored. If you cd to that directory, then:
+Start the server in the same directory that you want the server’s files stored. If you cd to that directory (e.g., `oxigraph`), then:
 
-```oxigraph_server -f .```
+```
+oxigraph_server -l. serve
+```
 
 The endpoint is http://localhost:7878
 
 ### Upload data
 
-curl http://localhost:7878/store?default -H 'Content-Type:application/n-triples' --data-binary '@TemplateLücking_et_al.,_2017c.nt'  --progress-bar 
+#### To default graph
 
-curl http://localhost:7878/store?graph=https://species.wikimedia.org -H 'Content-Type:application/n-triples' --data-binary '@TemplateYakovlev,_Naydenov_&_Penco,_2022.nt'  --progress-bar 
+```
+curl 'http://localhost:7878/store?default' -H 'Content-Type:application/n-triples' --data-binary '@triples.nt'  --progress-bar
+```
 
-curl http://localhost:7878/store?default -H 'Content-Type:application/n-triples' --data-binary '@1999-3110-54-38.nt' 
+#### To named graph
+
+```
+curl 'http://localhost:7878/store?graph=https://species.wikimedia.org' -H 'Content-Type:application/n-triples' --data-binary '@triples.nt'  --progress-bar
+```
 
 ### Query
 
@@ -48,6 +56,7 @@ curl http://localhost:7878/query -H 'Content-Type:application/sparql-query' -H '
 curl http://localhost:7878/query -H 'Content-Type:application/sparql-query' -H 'application/n-triples' --data 'DESCRIBE <http://scigraph.springernature.com/pub.10.1186/1999-3110-54-38>'
 
 ### Delete
+
 curl http://localhost:7878/update -X POST -H 'Content-Type: application/sparql-update' --data 'DELETE WHERE { ?s ?p ?o }' 
 
 ## SPARQL
@@ -78,13 +87,11 @@ select * where {
 Get ordered list based on https://stackoverflow.com/questions/17523804/is-it-possible-to-get-the-position-of-an-element-in-an-rdf-collection-in-sparql/17530689#17530689
 
 ```
-
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select ?name ?author_page ?author_name (count(?mid)-1 as ?position)
-FROM <https://species.wikimedia.org>
+SELECT ?name ?author_page ?author_name (COUNT(?mid)-1 as ?position)
 WHERE { 
-  VALUES ?work { <https://doi.org/10.11646/zootaxa.4078.1.1> }
+  VALUES ?work { <https://doi.org/10.3897/zookeys.42.190> }
   
   ?work schema:author/rdf:rest* ?mid .
   ?mid rdf:rest* ?node .
@@ -92,11 +99,11 @@ WHERE {
   ?author schema:name ?name .
   OPTIONAL {
   	?author schema:mainEntityOfPage ?author_page .
-		?author_page schema:name ?author_name .
+	?author_page schema:name ?author_name .
   }
 }
-group by ?author ?name ?author_page ?author_name
-order by ?position
+GROUP BY ?author ?name ?author_page ?author_name
+ORDER BY ?position
 ```
 
 #### Works by an author as a list (no author order)
@@ -104,8 +111,8 @@ order by ?position
 ```
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select *
-FROM <https://species.wikimedia.org>
+SELECT *
+#FROM <https://species.wikimedia.org>
 WHERE { 
   ?webpage schema:name "Silvio Shigueo Nihei" .
    ?author schema:mainEntityOfPage ?webpage .
@@ -131,7 +138,8 @@ WHERE {
    ?work schema:mainEntityOfPage ?page. 
   ?work schema:name ?title .
 }
-GROUP BY ?work ?title```
+GROUP BY ?work ?title
+```
 
 
 ### Works
@@ -141,7 +149,7 @@ GROUP BY ?work ?title```
 ```
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select *  where { 
+SELECT * WHERE { 
   ?work schema:identifier ?identifier .
   ?identifier schema:propertyID "doi" .
   ?identifier schema:value ?doi .
@@ -153,7 +161,7 @@ select *  where {
 ```
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select *  where { 
+SELECT * WHERE { 
   ?work rdf:type schema:CreativeWork .
   ?work schema:description ?description .
 }
@@ -164,7 +172,7 @@ select *  where {
 ```
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select *  where { 
+SELECT * WHERE { 
   ?work rdf:type schema:CreativeWork .
   ?work schema:isPartOf ?container  .
   ?container schema:name ?container_title
@@ -179,7 +187,7 @@ ORDER BY ?container_title
 ```
 PREFIX schema: <http://schema.org/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-select *  where { 
+SELECT * WHERE { 
   
   # citations related to a name 
   
@@ -252,10 +260,6 @@ select * where {
 ```
 
 
-
-
-
-
 #### Try and get taxonomic hierarchy
 
 The hierarchy is implemented using templates, and doesn’t work for species as the genus and the species will all share the same templates.
@@ -277,6 +281,7 @@ where {
 
 #### Old queries
 
+```
 PREFIX schema: <http://schema.org/>
 select * where { 
   ?person schema:mainEntityOfPage <https://species.wikimedia.org/wiki/Robert_Lücking>. 
@@ -292,8 +297,9 @@ select * where {
   ?work schema:mainEntityOfPage ?article .
   }
 }
+```
 
-#### 
+
 
 
 
